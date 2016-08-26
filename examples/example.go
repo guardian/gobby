@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	g := gobby.NewGobby("/var/tmp/gobbyfile")
+	g := gobby.New("/var/tmp/gobbyfile")
 	g.Set("meep", gobby.JobStatus{"a", "done", nil})
 	g.Save()
 

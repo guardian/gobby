@@ -18,7 +18,7 @@ type Gobby struct {
 	Jobs     map[string]JobStatus
 }
 
-func NewGobby(location string) *Gobby {
+func New(location string) *Gobby {
 	return &Gobby{location, make(map[string]JobStatus)}
 }
 
