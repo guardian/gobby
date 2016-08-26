@@ -5,6 +5,8 @@ import (
 	"encoding/gob"
 	"io/ioutil"
 	"log"
+	"runtime"
+	"sync"
 )
 
 type JobStatus struct {
@@ -16,19 +18,33 @@ type JobStatus struct {
 type Gobby struct {
 	Location string
 	Jobs     map[string]JobStatus
+	mutex    *sync.Mutex
 }
 
 func New(location string) *Gobby {
-	return &Gobby{location, make(map[string]JobStatus)}
+	return &Gobby{
+		location,
+		make(map[string]JobStatus),
+		&sync.Mutex{},
+	}
 }
 
 func (gobby *Gobby) Set(s string, j JobStatus) {
+	gobby.mutex.Lock()
 	gobby.Jobs[s] = j
+	gobby.mutex.Unlock()
+
+	runtime.Gosched()
 }
 
-func (gobby *Gobby) Get(s string) (*JobStatus, bool) {
+func (gobby *Gobby) Get(s string) (JobStatus, bool) {
+	gobby.mutex.Lock()
 	j, exists := gobby.Jobs[s]
-	return &j, exists
+	gobby.mutex.Unlock()
+
+	runtime.Gosched()
+
+	return j, exists
 }
 
 func (gobby *Gobby) Load() error {
@@ -44,7 +60,12 @@ func (gobby *Gobby) Load() error {
 	_, err = buf.Write(dat)
 
 	dec := gob.NewDecoder(&buf)
+
+	gobby.mutex.Lock()
 	dec.Decode(&gobby.Jobs)
+	gobby.mutex.Unlock()
+
+	runtime.Gosched()
 
 	return err
 }
@@ -53,7 +74,12 @@ func (gobby *Gobby) Save() error {
 	var buf bytes.Buffer
 
 	enc := gob.NewEncoder(&buf)
+
+	gobby.mutex.Lock()
 	err := enc.Encode(gobby.Jobs)
+	gobby.mutex.Unlock()
+
+	runtime.Gosched()
 
 	if err != nil {
 		log.Println("gobby encode error:", err)
