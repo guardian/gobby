@@ -50,6 +50,9 @@ func (gobby *Gobby) Get(s string) (JobStatus, bool) {
 func (gobby *Gobby) Load() error {
 	var buf bytes.Buffer
 
+	// --- Begin lock
+	gobby.mutex.Lock()
+
 	dat, err := ioutil.ReadFile(gobby.Location)
 
 	if err != nil {
@@ -61,9 +64,10 @@ func (gobby *Gobby) Load() error {
 
 	dec := gob.NewDecoder(&buf)
 
-	gobby.mutex.Lock()
 	dec.Decode(&gobby.Jobs)
+
 	gobby.mutex.Unlock()
+	// --- End lock
 
 	runtime.Gosched()
 
@@ -75,11 +79,10 @@ func (gobby *Gobby) Save() error {
 
 	enc := gob.NewEncoder(&buf)
 
+	// --- Begin lock
 	gobby.mutex.Lock()
-	err := enc.Encode(gobby.Jobs)
-	gobby.mutex.Unlock()
 
-	runtime.Gosched()
+	err := enc.Encode(gobby.Jobs)
 
 	if err != nil {
 		log.Println("gobby encode error:", err)
@@ -87,6 +90,11 @@ func (gobby *Gobby) Save() error {
 	}
 
 	err = ioutil.WriteFile(gobby.Location, buf.Bytes(), 0644)
+
+	gobby.mutex.Unlock()
+	// --- End lock
+
+	runtime.Gosched()
 
 	if err != nil {
 		log.Println("gobby save error:", err)
