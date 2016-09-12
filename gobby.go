@@ -57,7 +57,6 @@ func (gobby *Gobby) Load() error {
 
 	if err != nil {
 		log.Println("gobby file read error:", err)
-		return err
 	}
 
 	_, err = buf.Write(dat)
